@@ -1,2 +1,2 @@
 # LogicPuzzleSolver
-Using backtracking to solve Boolean satisfiability problems in logic puzzles.
+Using backtracking to solve the Zebra Puzzle.
