@@ -1,0 +1,45 @@
+{
+    "original_attributes": [
+      {
+        "number": "1",
+        "color": "yellow",
+        "nationality": "Norwegian",
+        "beverage": "water",
+        "cigarette": "Kools",
+        "pet": "fox"
+      },
+      {
+        "number": "2",
+        "color": "blue",
+        "nationality": "Ukrainian",
+        "beverage": "tea",
+        "cigarette": "Chesterfields",
+        "pet": "horse"
+      },
+      {
+        "number": "3",
+        "color": "red",
+        "nationality": "Englishman",
+        "beverage": "milk",
+        "cigarette": "Old Gold",
+        "pet": "snails"
+      },
+      {
+        "number": "4",
+        "color": "green",
+        "nationality": "Spaniard",
+        "beverage": "coffee",
+        "cigarette": "Lucky Strike",
+        "pet": "dog"
+      },
+      {
+        "number": "5",
+        "color": "ivory",
+        "nationality": "Japanese",
+        "beverage": "orange juice",
+        "cigarette": "Parliaments",
+        "pet": "zebra"
+      }
+    ]
+  }
+  

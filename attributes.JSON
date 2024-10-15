@@ -1,0 +1,52 @@
+{
+    "houses": [
+      {
+        "number": 1,
+        "color": "",
+        "nationality": "",
+        "beverage": "",
+        "cigarette": "",
+        "pet": ""
+      },
+      {
+        "number": 2,
+        "color": "",
+        "nationality": "",
+        "beverage": "",
+        "cigarette": "",
+        "pet": ""
+      },
+      {
+        "number": 3,
+        "color": "",
+        "nationality": "",
+        "beverage": "",
+        "cigarette": "",
+        "pet": ""
+      },
+      {
+        "number": 4,
+        "color": "",
+        "nationality": "",
+        "beverage": "",
+        "cigarette": "",
+        "pet": ""
+      },
+      {
+        "number": 5,
+        "color": "",
+        "nationality": "",
+        "beverage": "",
+        "cigarette": "",
+        "pet": ""
+      }
+    ],
+    "attributes": {
+      "colors": ["red", "green", "ivory", "yellow", "blue"],
+      "nationalities": ["Englishman", "Spaniard", "Ukrainian", "Norwegian", "Japanese"],
+      "beverages": ["coffee", "tea", "milk", "orange juice", "water"],
+      "cigarettes": ["Old Gold", "Kools", "Chesterfields", "Lucky Strike", "Parliaments"],
+      "pets": ["dog", "snails", "fox", "horse", "zebra"]
+    }
+  }
+  
