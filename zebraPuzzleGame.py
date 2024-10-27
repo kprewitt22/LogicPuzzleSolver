@@ -1,6 +1,5 @@
 import pygame
 import json
-import random
 import sys
 
 # Initialize Pygame
@@ -8,7 +7,7 @@ pygame.init()
 
 # Screen dimensions
 WIDTH, HEIGHT = 800, 600
-ROWS, COLS = 6, 6  # 6x6 grid with headers in the top row and left column
+ROWS, COLS = 6, 6
 CELL_WIDTH = WIDTH // COLS
 CELL_HEIGHT = HEIGHT // ROWS
 
@@ -171,87 +170,67 @@ def handle_click(pos, houses, attributes, screen):
     row = y // CELL_HEIGHT
 
     # Ensure we are within the bounds of attribute cells (not header or label cells)
-    if 1 <= col < COLS and 1 <= row < ROWS:
-        # Adjust row and column to access the correct house and attribute
+    if cycle_mode:
+        # Only allow clicks within the currently selected cell
+        if current_selection and (houses.index(current_selection[0]) + 1 == row) and (attribute_plural_keys[current_selection[1]] == list(attribute_plural_keys.values())[col - 1]):
+            _, attr_type, index = current_selection
+            next_index = (index + 1) % len(attributes[attribute_plural_keys[attr_type]])
+            current_selection = (current_selection[0], attr_type, next_index)
+            setattr(current_selection[0], attr_type, attributes[attribute_plural_keys[attr_type]][next_index])
+    elif 1 <= col < COLS and 1 <= row < ROWS:
+        # Start cycling in the newly clicked cell if not already in cycle mode
         house = houses[row - 1]
         attribute_types = ['color', 'nationality', 'beverage', 'cigarette', 'pet']
         attr_type = attribute_types[col - 1]
-        options_key = attribute_plural_keys[attr_type]
-        options = attributes[options_key]
-
-        # If not in cycle mode, start cycling through options
-        if not cycle_mode:
-            current_selection = (house, attr_type, 0)  # Set initial selection index
-            cycle_mode = True
-
-        # Cycle to the next option
-        else:
-            _, attr, index = current_selection
-            next_index = (index + 1) % len(options)
-            current_selection = (house, attr_type, next_index)
-
-        # Display the current option (not finalized)
-        next_value = options[current_selection[2]]
-        setattr(house, attr_type, next_value)
+        current_selection = (house, attr_type, 0)
+        cycle_mode = True
+        setattr(house, attr_type, attributes[attribute_plural_keys[attr_type]][0])
 
 def finalize_selection(screen):
     global current_selection, cycle_mode
 
-    # If in cycle mode, finalize the selection
-    if cycle_mode:
-        house, attr_type, index = current_selection
+    if current_selection:
+        house, attr_type, _ = current_selection
         selected_value = getattr(house, attr_type)
-
-        # Check for duplicates
         duplicate_house = next((h for h in houses if h is not house and getattr(h, attr_type) == selected_value), None)
         if duplicate_house:
-            # Ask to clear the existing duplicate or cancel the selection
             response = prompt_clear_or_cancel(screen, selected_value)
             if response == "clear":
                 setattr(duplicate_house, attr_type, "")
             elif response == "cancel":
-                setattr(house, attr_type, "")  # Reset current house's attribute
-
+                setattr(house, attr_type, "")
         current_selection = None
-        cycle_mode = False  # Exit cycle mode
+        cycle_mode = False
 
 def prompt_clear_or_cancel(screen, selected_value):
-    # Define prompt dimensions and position
     prompt_width, prompt_height = 400, 200
     prompt_x = (WIDTH - prompt_width) // 2
     prompt_y = (HEIGHT - prompt_height) // 2
     prompt_rect = pygame.Rect(prompt_x, prompt_y, prompt_width, prompt_height)
 
-    # Draw the prompt background
     pygame.draw.rect(screen, WHITE, prompt_rect)
     pygame.draw.rect(screen, BLACK, prompt_rect, 2)
 
-    # Render the prompt text
     prompt_text = FONT.render(f"'{selected_value}' is already assigned.", True, BLACK)
     screen.blit(prompt_text, (prompt_x + 20, prompt_y + 30))
-
-    # Render options
     clear_text = FONT.render("Press C to Clear", True, BLACK)
     cancel_text = FONT.render("Press X to Cancel", True, BLACK)
     screen.blit(clear_text, (prompt_x + 20, prompt_y + 80))
     screen.blit(cancel_text, (prompt_x + 20, prompt_y + 120))
-
     pygame.display.flip()
 
-    # Wait for user input
     waiting = True
     while waiting:
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_c:  # User chooses to clear
+                if event.key == pygame.K_c:
                     return "clear"
-                elif event.key == pygame.K_x:  # User chooses to cancel
+                elif event.key == pygame.K_x:
                     return "cancel"
             elif event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
 
-# Main game loop
 def main():
     global current_selection, cycle_mode
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -273,9 +252,9 @@ def main():
                 pos = pygame.mouse.get_pos()
                 handle_click(pos, houses, attributes, screen)
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:  # Press Enter to finalize selection
+                if event.key == pygame.K_RETURN:
                     finalize_selection(screen)
-                elif event.key == pygame.K_c and not cycle_mode:  # Show clues only if not in cycle mode
+                elif event.key == pygame.K_c and not cycle_mode:
                     show_clues(screen)
                 elif event.key == pygame.K_s:
                     accuracy = check_solution(houses, og_attributes)
