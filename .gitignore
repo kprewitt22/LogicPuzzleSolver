@@ -1,0 +1,18 @@
+#ignore python environment and associated log files
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment folders
+env/
+.venv/
+env.bak/
+venv/
+
+# macOS system files
+.DS_Store
+
+# Python-specific cache and logs
+*.log
+.cache/

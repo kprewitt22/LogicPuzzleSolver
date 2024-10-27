@@ -1,101 +1,74 @@
-import itertools
-import json
-import random
-def is_valid(house):
-    # Example constraints (you can add more based on the Zebra puzzle)
-    
-    for house in houses:
-        # Example: The Englishman lives in the red house
-        if house['nationality'] == 'Englishman' and house['color'] != 'red':
+import time
+
+class ZebraPuzzleSolver:
+    def __init__(self, domains, clues):
+        self.domains = domains
+        self.clues = clues
+        self.solution = None
+
+    def solve_with_backtracking(self):
+        """Standard backtracking solver."""
+        start_time = time.time()
+        success = self.backtracking_search()
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Backtracking solution {'found' if success else 'not found'} in {elapsed_time:.4f} seconds.")
+        return elapsed_time
+
+    def solve_with_forward_checking(self):
+        """Backtracking with forward checking solver."""
+        start_time = time.time()
+        success = self.backtracking_search(forward_check=True)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Forward Checking solution {'found' if success else 'not found'} in {elapsed_time:.4f} seconds.")
+        return elapsed_time
+
+    def backtracking_search(self, forward_check=False):
+        """Recursive backtracking search function."""
+        return self.recursive_backtracking({}, forward_check)
+
+    def recursive_backtracking(self, assignment, forward_check):
+        """Backtracking search with optional forward checking."""
+        if len(assignment) == 5:
+            if self.is_solution(assignment):
+                self.solution = assignment
+                return True
             return False
-        if house['color'] == 'red' and house['nationality'] != 'Englishman':
-            return False
 
-        # The Spaniard owns the dog
-        if house['nationality'] == 'Spaniard' and house['pet'] != 'dog':
-            return False
-        if house['pet'] == 'dog' and house['nationality'] != 'Spaniard':
-            return False
+        var = self.select_unassigned_variable(assignment)
 
-        # The Norwegian lives in the first house
-        if house['number'] == 1 and house['nationality'] != 'Norwegian':
-            return False
-        if house['nationality'] == 'Norwegian' and house['number'] != 1:
-            return False
+        for value in self.domains[var]:
+            if self.is_consistent(var, value, assignment):
+                assignment[var] = value
 
-        # Milk is drunk in the middle house
-        if house['number'] == 3 and house['beverage'] != 'milk':
-            return False
-        if house['beverage'] == 'milk' and house['number'] != 3:
-            return False
+                if forward_check and not self.forward_check(var, assignment):
+                    del assignment[var]
+                    continue
 
-    return True
+                if self.recursive_backtracking(assignment, forward_check):
+                    return True
 
-def backtracking(houses, attributes, index):
-    
-    if index == len(houses):
-        if is_valid(houses):
-            return houses
-        else:
-            return None
+                del assignment[var]
 
-    current_house = houses[index]
-    
-    # Try all possible combinations of attributes for this house
-    for color in attributes['colors']:
-        current_house['color'] = color
-        for nationality in attributes['nationalities']:
-            current_house['nationality'] = nationality
-            for beverage in attributes['beverages']:
-                current_house['beverage'] = beverage
-                for cigarette in attributes['cigarettes']:
-                    current_house['cigarette'] = cigarette
-                    for pet in attributes['pets']:
-                        current_house['pet'] = pet
-                        
-                        # Recursively assign attributes to the next house
-                        result = backtracking(houses, attributes, index + 1)
-                        if result:
-                            return result
-                        
-                        # Reset attributes for backtracking
-                        current_house['color'] = None
-                        current_house['nationality'] = None
-                        current_house['beverage'] = None
-                        current_house['cigarette'] = None
-                        current_house['pet'] = None
+        return False
 
-    return None
-# Read in JSON file
-with open('attributes.json', 'r') as file:
-    data = json.load(file)
+    def is_solution(self, assignment):
+        """Implement solution check logic based on puzzle constraints."""
+        # Placeholder for actual solution check based on clues
+        pass
 
-# Set objects
-houses = data['houses']
-attributes = data['attributes']
+    def select_unassigned_variable(self, assignment):
+        for var in self.domains:
+            if var not in assignment:
+                return var
 
-# Initialize houses with empty attributes
-for house in houses:
-    house.update({
-        'color': None,
-        'nationality': None,
-        'beverage': None,
-        'cigarette': None,
-        'pet': None
-    })
+    def is_consistent(self, var, value, assignment):
+        """Check if assigning value to var is consistent with the assignment."""
+        # Placeholder for consistency check based on clues
+        pass
 
-# Solve using backtracking
-solution = backtracking(houses, attributes, 0)
-
-# Print the solution if found
-if solution:
-    for house in solution:
-        print(f"House {house['number']}:")
-        print(f"  Color: {house['color']}")
-        print(f"  Nationality: {house['nationality']}")
-        print(f"  Beverage: {house['beverage']}")
-        print(f"  Cigarette: {house['cigarette']}")
-        print(f"  Pet: {house['pet']}")
-        print()
-else:
-    print("No solution found.")
+    def forward_check(self, var, assignment):
+        """Implement forward checking logic."""
+        # Placeholder for forward checking implementation
+        pass

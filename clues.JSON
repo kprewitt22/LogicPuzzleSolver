@@ -1,0 +1,53 @@
+{
+    "clues": [
+      {
+        "id": 1,
+        "description": "The Englishman lives in the red house."
+      },
+      {
+        "id": 2,
+        "description": "The Spaniard owns the dog."
+      },
+      {
+        "id": 3,
+        "description": "The Ukrainian drinks tea."
+      },
+      {
+        "id": 4,
+        "description": "The green house is immediately to the right of the ivory house."
+      },
+      {
+        "id": 5,
+        "description": "The Norwegian lives in the first house."
+      },
+      {
+        "id": 6,
+        "description": "The man who smokes Kools lives in the yellow house."
+      },
+      {
+        "id": 7,
+        "description": "The man who lives in the center house drinks milk."
+      },
+      {
+        "id": 8,
+        "description": "The man who smokes Chesterfields lives next to the man with the fox."
+      },
+      {
+        "id": 9,
+        "description": "The Kools smoker lives next to the man with the horse."
+      },
+      {
+        "id": 10,
+        "description": "The Lucky Strike smoker drinks orange juice."
+      },
+      {
+        "id": 11,
+        "description": "The Japanese smokes Parliaments."
+      },
+      {
+        "id": 12,
+        "description": "The Norwegian lives next to the blue house."
+      }
+    ]
+  }
+  
