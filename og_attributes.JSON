@@ -26,17 +26,17 @@
       },
       {
         "number": "4",
-        "color": "green",
+        "color": "ivory",
         "nationality": "Spaniard",
-        "beverage": "coffee",
+        "beverage": "orange juice",
         "cigarette": "Lucky Strike",
         "pet": "dog"
       },
       {
         "number": "5",
-        "color": "ivory",
+        "color": "green",
         "nationality": "Japanese",
-        "beverage": "orange juice",
+        "beverage": "coffee",
         "cigarette": "Parliaments",
         "pet": "zebra"
       }

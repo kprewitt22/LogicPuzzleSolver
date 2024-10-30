@@ -1,6 +1,9 @@
+# zebraPuzzleGame.py
 import pygame
 import json
 import sys
+import random
+from backTracking import ZebraPuzzleSolver  # Ensure the file name matches
 
 # Initialize Pygame
 pygame.init()
@@ -12,9 +15,9 @@ CELL_WIDTH = WIDTH // COLS
 CELL_HEIGHT = HEIGHT // ROWS
 
 # Colors
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-GRID_COLOR = (200, 200, 200)
+WHITE = (255, 255, 255)  # Cell color
+BLACK = (0, 0, 0)        # Text color
+GRID_COLOR = (0, 0, 0)    # Black grid
 
 # Fonts
 FONT_SIZE = 20
@@ -22,9 +25,8 @@ FONT = pygame.font.SysFont('Arial', FONT_SIZE)
 
 # Load attributes
 with open('attributes.json', 'r') as file:
-    attributes = json.load(file)['attributes']
-with open('og_attributes.json', 'r') as og_file:
-    og_attributes = json.load(og_file)['original_attributes']
+    attributes_data = json.load(file)
+    attributes = attributes_data['attributes']
 
 # Load clues from clues.json
 try:
@@ -65,14 +67,9 @@ class House:
 # Initialize houses
 houses = [House(str(i + 1)) for i in range(5)]
 
-# Correct mapping for each attribute type to the plural form used in the attributes dictionary
-attribute_plural_keys = {
-    'color': 'colors',
-    'nationality': 'nationalities',
-    'beverage': 'beverages',
-    'cigarette': 'cigarettes',
-    'pet': 'pets'
-}
+# Mapping attribute types to their corresponding plural forms in attributes.json
+# Since attributes.json now uses singular keys, adjust accordingly
+attribute_keys = ['color', 'nationality', 'beverage', 'cigarette', 'pet']
 
 # Track the current selection for cycling
 current_selection = None
@@ -86,11 +83,11 @@ def clear_all(houses):
 def get_random_attr(houses, attributes):
     shuffled_attributes = {key: random.sample(values, len(values)) for key, values in attributes.items()}
     for i, house in enumerate(houses):
-        house.color = shuffled_attributes['colors'][i]
-        house.nationality = shuffled_attributes['nationalities'][i]
-        house.beverage = shuffled_attributes['beverages'][i]
-        house.cigarette = shuffled_attributes['cigarettes'][i]
-        house.pet = shuffled_attributes['pets'][i]
+        house.color = shuffled_attributes['color'][i]
+        house.nationality = shuffled_attributes['nationality'][i]
+        house.beverage = shuffled_attributes['beverage'][i]
+        house.cigarette = shuffled_attributes['cigarette'][i]
+        house.pet = shuffled_attributes['pet'][i]
 
 def get_original_attr(houses, og_attributes):
     for i, house in enumerate(houses):
@@ -152,7 +149,7 @@ def draw_houses(screen, houses):
     for row, house in enumerate(houses, start=1):
         text_surface = FONT.render(f"House {house.number}", True, BLACK)
         screen.blit(text_surface, (5, row * CELL_HEIGHT + 5))  # Left column headers
-    
+
     # Populate house attributes in the respective cells
     for row, house in enumerate(houses, start=1):  # Rows start from 1 to leave space for headers
         attributes = [house.color, house.nationality, house.beverage, house.cigarette, house.pet]
@@ -172,11 +169,13 @@ def handle_click(pos, houses, attributes, screen):
     # Ensure we are within the bounds of attribute cells (not header or label cells)
     if cycle_mode:
         # Only allow clicks within the currently selected cell
-        if current_selection and (houses.index(current_selection[0]) + 1 == row) and (attribute_plural_keys[current_selection[1]] == list(attribute_plural_keys.values())[col - 1]):
-            _, attr_type, index = current_selection
-            next_index = (index + 1) % len(attributes[attribute_plural_keys[attr_type]])
-            current_selection = (current_selection[0], attr_type, next_index)
-            setattr(current_selection[0], attr_type, attributes[attribute_plural_keys[attr_type]][next_index])
+        if (current_selection and 
+            (houses.index(current_selection[0]) + 1 == row) and 
+            (current_selection[1] in attributes)):
+            house, attr_type, index = current_selection
+            next_index = (index + 1) % len(attributes[current_selection[1]])
+            current_selection = (house, attr_type, next_index)
+            setattr(current_selection[0], attr_type, attributes[current_selection[1]][next_index])
     elif 1 <= col < COLS and 1 <= row < ROWS:
         # Start cycling in the newly clicked cell if not already in cycle mode
         house = houses[row - 1]
@@ -184,7 +183,7 @@ def handle_click(pos, houses, attributes, screen):
         attr_type = attribute_types[col - 1]
         current_selection = (house, attr_type, 0)
         cycle_mode = True
-        setattr(house, attr_type, attributes[attribute_plural_keys[attr_type]][0])
+        setattr(house, attr_type, attributes[attr_type][0])
 
 def finalize_selection(screen):
     global current_selection, cycle_mode
@@ -231,6 +230,36 @@ def prompt_clear_or_cancel(screen, selected_value):
                 pygame.quit()
                 sys.exit()
 
+# Draw solution visualization (optional). This function displays the solution given by the backtracking w/forward checking heuristic in the game's puzzle
+def visualize_solution(screen, houses, solver):
+    def backtrack_visual(house_index=0):
+        if house_index == 5:
+            return True
+
+        for attribute in solver.attributes:
+            for value in solver.attributes[attribute]:
+                if solver.is_valid_assignment(house_index, attribute, value):
+                    houses[house_index].__dict__[attribute] = value
+                    solver.houses[house_index][attribute] = value
+
+                    # Draw updated houses
+                    screen.fill(WHITE)
+                    draw_grid(screen)
+                    draw_houses(screen, houses)
+                    pygame.display.flip()
+                    pygame.time.delay(200)  # Delay to visualize solving
+
+                    if backtrack_visual(house_index + 1):
+                        return True
+
+                    # Undo the assignment if it leads to a dead end
+                    houses[house_index].__dict__[attribute] = None
+                    solver.houses[house_index][attribute] = None
+
+        return False
+
+    backtrack_visual()
+
 def main():
     global current_selection, cycle_mode
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -257,10 +286,35 @@ def main():
                 elif event.key == pygame.K_c and not cycle_mode:
                     show_clues(screen)
                 elif event.key == pygame.K_s:
-                    accuracy = check_solution(houses, og_attributes)
-                    print(f"Your solution is {accuracy:.2f}% accurate.")
-                    if accuracy == 100:
-                        print("Congratulations! You've solved the puzzle correctly!")
+                    # Assuming 'og_attributes.json' is now removed from domain initialization
+                    # or used differently. Adjust as necessary.
+                    accuracy = 0
+                    try:
+                        with open('og_attributes.json', 'r') as og_file:
+                            og_attributes = json.load(og_file)['original_attributes']
+                        accuracy = check_solution(houses, og_attributes)
+                        print(f"Your solution is {accuracy:.2f}% accurate.")
+                        if accuracy == 100:
+                            print("Congratulations! You've solved the puzzle correctly!")
+                        else:
+                            print(f"You have not reached the solution but are {accuracy:.2f}% accurate.")
+                    except (FileNotFoundError, json.JSONDecodeError) as e:
+                        print("Original attributes not found or invalid:", e)
+                elif event.key == pygame.K_a:  # Press 'a' to solve the puzzle
+                    print("AI solving puzzle now ...")
+                    # Initialize the solver with debug mode enabled
+                    solver = ZebraPuzzleSolver(attributes, clues, debug=True)
+                    solution = solver.solve()
+
+                    if solution:
+                        print("\nSolution found:")
+                        for i, house in enumerate(solution):
+                            print(f"House {i + 1}: {house}")
+                        # Update the Pygame houses to reflect the solution
+                        for i in range(5):
+                            houses[i].update(solution[i])
+                    else:
+                        print("\nNo solution found.")
                 elif event.key == pygame.K_r:
                     clear_all(houses)
 
