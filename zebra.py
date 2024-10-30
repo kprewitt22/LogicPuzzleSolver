@@ -128,6 +128,7 @@ def game_loop(houses, attributes, solver):
             print("\nSolving puzzle with different methods...")
             time_bt = solver.solve_with_backtracking()
             time_fc = solver.solve_with_forward_checking()
+            accuracy = check_solution(houses, og_attributes)
             print(f"\nPlayer's manual progress: {accuracy:.2f}% accurate.")
             print(f"Backtracking time: {time_bt:.4f} seconds.")
             print(f"Forward Checking time: {time_fc:.4f} seconds.\n")
