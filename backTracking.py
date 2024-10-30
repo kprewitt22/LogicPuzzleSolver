@@ -55,8 +55,74 @@ class ZebraPuzzleSolver:
 
     def is_solution(self, assignment):
         """Implement solution check logic based on puzzle constraints."""
-        # Placeholder for actual solution check based on clues
-        pass
+        for clue in self.clues:
+            if not self.check_clue(clue, assignment):
+                return False
+        return True
+
+    def check_clue(self, clue, assignment):
+        """Check if a single clue is satisfied by the current assignment."""
+        desc = clue['description']
+
+        # Process each clue based on its description
+        if "Englishman" in desc and "red" in desc:
+            if not (assignment.get('nationality_Englishman') == 'red'):
+                return False
+        if "Spaniard" in desc and "dog" in desc:
+            if not (assignment.get('nationality_Spaniard') == 'dog'):
+                return False
+        if "Ukrainian" in desc and "tea" in desc:
+            if not (assignment.get('nationality_Ukrainian') == 'tea'):
+                return False
+        if "green house" in desc and "ivory house" in desc:
+            green_index = assignment.get('color_green')
+            ivory_index = assignment.get('color_ivory')
+            if green_index is None or ivory_index is None or green_index != ivory_index + 1:
+                return False
+        if "Norwegian" in desc and "first house" in desc:
+            if assignment.get('nationality_Norwegian') != 1:
+                return False
+        if "Kools" in desc and "yellow house" in desc:
+            if not (assignment.get('cigarette_Kools') == 'yellow'):
+                return False
+        if "milk" in desc and "center house" in desc:
+            if assignment.get('beverage_milk') != 3:
+                return False
+        if "Chesterfields" in desc and "fox" in desc:
+            if not self.check_adjacent(assignment, 'cigarette_Chesterfields', 'pet_fox'):
+                return False
+        if "Kools" in desc and "horse" in desc:
+            if not self.check_adjacent(assignment, 'cigarette_Kools', 'pet_horse'):
+                return False
+        if "Lucky Strike" in desc and "orange juice" in desc:
+            if not (assignment.get('cigarette_LuckyStrike') == 'orange juice'):
+                return False
+        if "Japanese" in desc and "Parliaments" in desc:
+            if not (assignment.get('nationality_Japanese') == 'Parliaments'):
+                return False
+        if "Norwegian" in desc and "blue house" in desc:
+            norwegian_index = assignment.get('nationality_Norwegian')
+            blue_index = assignment.get('color_blue')
+            if blue_index is None or abs(norwegian_index - blue_index) != 1:
+                return False
+
+        return True
+
+    def check_adjacent(self, assignment, var1, var2):
+        """Check if two variables (houses) are adjacent."""
+        index1 = None
+        index2 = None
+
+        for i in range(1, 6):  # Assuming house numbers are from 1 to 5
+            if assignment.get(f'{var1}_{i}') is not None:
+                index1 = i
+            if assignment.get(f'{var2}_{i}') is not None:
+                index2 = i
+
+        # Check if they are adjacent
+        return index1 is not None and index2 is not None and abs(index1 - index2) == 1
+
+    
 
     def select_unassigned_variable(self, assignment):
         for var in self.domains:
@@ -65,10 +131,19 @@ class ZebraPuzzleSolver:
 
     def is_consistent(self, var, value, assignment):
         """Check if assigning value to var is consistent with the assignment."""
-        # Placeholder for consistency check based on clues
-        pass
+        # Ensure that the value does not conflict with existing assignments
+        for other_var in assignment:
+            if assignment[other_var] == value:
+                return False
+        return True
 
     def forward_check(self, var, assignment):
         """Implement forward checking logic."""
-        # Placeholder for forward checking implementation
-        pass
+    # Remove values from domains that conflict with the current assignment
+        for other_var in self.domains:
+            if other_var != var and other_var not in assignment:
+                if assignment.get(var) in self.domains[other_var]:
+                    self.domains[other_var].remove(assignment[var])
+                if not self.domains[other_var]:  # If the domain is empty, no solution
+                    return False
+        return True
