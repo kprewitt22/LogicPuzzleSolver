@@ -3,16 +3,20 @@ import pygame
 import json
 import sys
 import random
+import time
 from backTracking import ZebraPuzzleSolver  # Ensure the file name matches
 
 # Initialize Pygame
 pygame.init()
 
 # Screen dimensions
-WIDTH, HEIGHT = 800, 600
+WIDTH, HEIGHT = 1000, 700
+GRID_MARGIN_TOP = 50
+GRID_MARGIN_LEFT = 50
+OUTPUT_BOX_HEIGHT = 100
 ROWS, COLS = 6, 6
-CELL_WIDTH = WIDTH // COLS
-CELL_HEIGHT = HEIGHT // ROWS
+CELL_WIDTH = (WIDTH - 2 * GRID_MARGIN_LEFT) // COLS
+CELL_HEIGHT = (HEIGHT - OUTPUT_BOX_HEIGHT - GRID_MARGIN_TOP) // ROWS
 
 # Colors
 WHITE = (255, 255, 255)  # Cell color
@@ -22,7 +26,10 @@ GRID_COLOR = (0, 0, 0)    # Black grid
 # Fonts
 FONT_SIZE = 20
 FONT = pygame.font.SysFont('Arial', FONT_SIZE)
-
+#Ouput message in output box
+output_message = ""
+message_time = 0  # Timestamp for when the message was last updated
+MESSAGE_DISPLAY_DURATION = 5  # Duration in seconds for the message to stay
 # Load attributes
 with open('attributes.json', 'r') as file:
     attributes_data = json.load(file)
@@ -129,26 +136,32 @@ def wait_for_key():
 
 # Draw grid and houses
 def draw_grid(screen):
+    # Drawing the grid with margins for space around it
     for row in range(ROWS):
         for col in range(COLS):
-            rect = pygame.Rect(col * CELL_WIDTH, row * CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT)
+            rect = pygame.Rect(
+                GRID_MARGIN_LEFT + col * CELL_WIDTH, 
+                GRID_MARGIN_TOP + row * CELL_HEIGHT, 
+                CELL_WIDTH, 
+                CELL_HEIGHT
+            )
             pygame.draw.rect(screen, GRID_COLOR, rect, 1)
 
 def draw_houses(screen, houses):
-    # Header label for the top-left cell
-    text_surface = FONT.render("House", True, BLACK)
-    screen.blit(text_surface, (5, 5))  # Place "House" label in the top-left cell
-
-    # Header labels for the first row (attribute names)
-    headers = ['Color', 'Nationality', 'Beverage', 'Cigarette', 'Pet']
-    for col, header in enumerate(headers, start=1):
+    # Draw header labels in the top row
+    headers = ['House', 'Color', 'Nationality', 'Beverage', 'Cigarette', 'Pet']
+    for col, header in enumerate(headers):
         text_surface = FONT.render(header, True, BLACK)
-        screen.blit(text_surface, (col * CELL_WIDTH + 5, 5))  # Top row headers
+        text_x = GRID_MARGIN_LEFT + col * CELL_WIDTH + (CELL_WIDTH - text_surface.get_width()) // 2
+        text_y = GRID_MARGIN_TOP + (CELL_HEIGHT - text_surface.get_height()) // 2
+        screen.blit(text_surface, (text_x, text_y))
 
-    # House number labels in the first column, starting from the second row
-    for row, house in enumerate(houses, start=1):
+    # Draw house number labels in the first column
+    for row, house in enumerate(houses):
         text_surface = FONT.render(f"House {house.number}", True, BLACK)
-        screen.blit(text_surface, (5, row * CELL_HEIGHT + 5))  # Left column headers
+        text_x = GRID_MARGIN_LEFT + (CELL_WIDTH - text_surface.get_width()) // 2
+        text_y = GRID_MARGIN_TOP + (row + 1) * CELL_HEIGHT + (CELL_HEIGHT - text_surface.get_height()) // 2
+        screen.blit(text_surface, (text_x, text_y))
 
     # Populate house attributes in the respective cells
     for row, house in enumerate(houses, start=1):  # Rows start from 1 to leave space for headers
@@ -156,34 +169,73 @@ def draw_houses(screen, houses):
         for col, attr in enumerate(attributes, start=1):  # Columns start from 1 for the headers
             text = attr if attr else ""
             text_surface = FONT.render(text, True, BLACK)
-            screen.blit(text_surface, (col * CELL_WIDTH + 5, row * CELL_HEIGHT + 5))
+            text_x = GRID_MARGIN_LEFT + col * CELL_WIDTH + (CELL_WIDTH - text_surface.get_width()) // 2
+            text_y = GRID_MARGIN_TOP + row * CELL_HEIGHT + (CELL_HEIGHT - text_surface.get_height()) // 2
+            screen.blit(text_surface, (text_x, text_y))
+
+def update_output_box(screen, message):
+    global output_message, message_time
+    output_message = message  # Update the global message variable
+    message_time = time.time()  # Set the current time as the last update time
+
+def draw_output_box(screen):
+    global output_message
+    current_time = time.time()
+
+    # Check if the duration for the message display has expired
+    if current_time - message_time > MESSAGE_DISPLAY_DURATION:
+        output_message = ""  # Clear the message after the delay
+
+    # Draw the output box area below the grid
+    output_box_rect = pygame.Rect(
+        0, HEIGHT - OUTPUT_BOX_HEIGHT, WIDTH, OUTPUT_BOX_HEIGHT
+    )
+    pygame.draw.rect(screen, WHITE, output_box_rect)  # Clear the output box area
+    pygame.draw.rect(screen, BLACK, output_box_rect, 2)  # Draw border
+
+    # Render and display the current message
+    text_surface = FONT.render(output_message, True, BLACK)
+    screen.blit(text_surface, (10, HEIGHT - OUTPUT_BOX_HEIGHT + 10))
 
 # Handle attribute assignments with rotating options
 def handle_click(pos, houses, attributes, screen):
     global current_selection, cycle_mode
 
     x, y = pos
-    col = x // CELL_WIDTH
-    row = y // CELL_HEIGHT
 
-    # Ensure we are within the bounds of attribute cells (not header or label cells)
-    if cycle_mode:
-        # Only allow clicks within the currently selected cell
-        if (current_selection and 
-            (houses.index(current_selection[0]) + 1 == row) and 
-            (current_selection[1] in attributes)):
+    # Adjust for grid margin offsets
+    if x < GRID_MARGIN_LEFT or y < GRID_MARGIN_TOP:
+        return  # Click is outside the grid area
+
+    # Calculate column and row based on the adjusted positions
+    col = (x - GRID_MARGIN_LEFT) // CELL_WIDTH
+    row = (y - GRID_MARGIN_TOP) // CELL_HEIGHT
+
+    # Ensure we are within grid bounds
+    if not (0 <= col < COLS and 1 <= row < ROWS):  # Row 0 is reserved for headers
+        return  # Click is outside the valid cell area
+
+    # Adjust the row to ignore the header row (row 0)
+    row -= 1
+
+    # Handle cycling attribute values within the clicked cell
+    if cycle_mode and current_selection:
+        # Only allow cycling within the currently selected cell
+        if current_selection[0] == houses[row] and current_selection[1] in attributes:
             house, attr_type, index = current_selection
             next_index = (index + 1) % len(attributes[current_selection[1]])
             current_selection = (house, attr_type, next_index)
             setattr(current_selection[0], attr_type, attributes[current_selection[1]][next_index])
-    elif 1 <= col < COLS and 1 <= row < ROWS:
+    else:
         # Start cycling in the newly clicked cell if not already in cycle mode
-        house = houses[row - 1]
+        house = houses[row]
         attribute_types = ['color', 'nationality', 'beverage', 'cigarette', 'pet']
-        attr_type = attribute_types[col - 1]
-        current_selection = (house, attr_type, 0)
-        cycle_mode = True
-        setattr(house, attr_type, attributes[attr_type][0])
+        if 1 <= col < COLS:  # Ensure col corresponds to a valid attribute column
+            attr_type = attribute_types[col - 1]  # Adjust col to skip "House" column
+            current_selection = (house, attr_type, 0)
+            cycle_mode = True
+            setattr(house, attr_type, attributes[attr_type][0])
+
 
 def finalize_selection(screen):
     global current_selection, cycle_mode
@@ -271,7 +323,7 @@ def main():
         screen.fill(WHITE)
         draw_grid(screen)
         draw_houses(screen, houses)
-
+        draw_output_box(screen)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -286,20 +338,18 @@ def main():
                 elif event.key == pygame.K_c and not cycle_mode:
                     show_clues(screen)
                 elif event.key == pygame.K_s:
-                    # Assuming 'og_attributes.json' is now removed from domain initialization
-                    # or used differently. Adjust as necessary.
                     accuracy = 0
                     try:
                         with open('og_attributes.json', 'r') as og_file:
                             og_attributes = json.load(og_file)['original_attributes']
                         accuracy = check_solution(houses, og_attributes)
-                        print(f"Your solution is {accuracy:.2f}% accurate.")
+                        update_output_box(screen, f"You are {accuracy:.2f}% accurate.")
                         if accuracy == 100:
-                            print("Congratulations! You've solved the puzzle correctly!")
+                            update_output_box(screen, "Congratulations! You've solved the puzzle correctly!")
                         else:
-                            print(f"You have not reached the solution but are {accuracy:.2f}% accurate.")
-                    except (FileNotFoundError, json.JSONDecodeError) as e:
-                        print("Original attributes not found or invalid:", e)
+                            update_output_box(screen, f"You are {accuracy:.2f}% accurate.")
+                    except (FileNotFoundError, json.JSONDecodeError):
+                        update_output_box(screen, "Original attributes not found or invalid.")
                 elif event.key == pygame.K_a:  # Press 'a' to solve the puzzle
                     print("AI solving puzzle now ...")
                     # Initialize the solver with debug mode enabled
@@ -307,15 +357,16 @@ def main():
                     solution = solver.solve()
 
                     if solution:
-                        print("\nSolution found:")
+                        update_output_box(screen, "Solution found!")
                         for i, house in enumerate(solution):
                             print(f"House {i + 1}: {house}")
                         # Update the Pygame houses to reflect the solution
                         for i in range(5):
                             houses[i].update(solution[i])
                     else:
-                        print("\nNo solution found.")
+                        update_output_box(screen, "No solution found.")
                 elif event.key == pygame.K_r:
+                    update_output_box(screen, "Houses reset!")
                     clear_all(houses)
 
         pygame.display.flip()
