@@ -1,8 +1,83 @@
-import numpy as np
-from backTracking import *
+import time
 import random
 import json
+class ZebraPuzzleSolver:
+    def __init__(self, attributes, clues, num_houses=5):
+        """
+        Initialize the Zebra Puzzle Solver.
+        
+        :param attributes: Dictionary of attribute lists (e.g., colors, nationalities, etc.).
+        :param clues: List of clues as constraint functions.
+        :param num_houses: Number of houses (default is 5).
+        """
+        self.attributes = {key: random.sample(values, len(values)) for key, values in attributes.items()}
+        self.clues = clues
+        self.num_houses = num_houses
+        self.houses = [{} for _ in range(self.num_houses)]  # Empty houses to start
 
+    def is_valid_assignment(self, house_index, attr, value):
+        """
+        Check if assigning `value` to `attr` in `house_index` is valid
+        with forward checking based on clues.
+        """
+        # Ensure value is unique for this attribute across all houses
+        for house in self.houses:
+            if house.get(attr) == value:
+                return False
+
+        # Check constraints using clues
+        for clue in self.clues:
+            if not clue(self.houses, house_index, attr, value):
+                return False
+        return True
+
+    def backtracking_solve(self, house_index=0):
+        """
+        Solve the puzzle using backtracking with forward checking.
+        
+        :param house_index: Current house index being processed.
+        :return: True if a solution is found, False otherwise.
+        """
+        if house_index == self.num_houses:
+            return True  # All houses filled successfully
+
+        # Try assigning each attribute to the current house
+        for attr, values in self.attributes.items():
+            if attr in self.houses[house_index]:  # Skip if already assigned
+                continue
+
+            for value in values:
+                if self.is_valid_assignment(house_index, attr, value):
+                    # Assign the value and move to the next house
+                    self.houses[house_index][attr] = value
+                    if self.backtracking_solve(house_index + 1):
+                        return True
+                    # Backtrack if assignment didn't lead to solution
+                    del self.houses[house_index][attr]
+
+        return False  # No valid assignment found
+
+    def solve_with_backtracking(self):
+        """
+        Solve with backtracking and measure time taken.
+        :return: Time taken to solve in seconds.
+        """
+        start_time = time.time()
+        success = self.backtracking_solve()
+        end_time = time.time()
+        if success:
+            print("Puzzle solved with backtracking.")
+        else:
+            print("No solution found with backtracking.")
+        return end_time - start_time
+
+    def solve_with_forward_checking(self):
+        """
+        Solve with forward checking and measure time taken.
+        :return: Time taken to solve in seconds.
+        """
+        # This function can incorporate additional logic if forward-checking differs from backtracking.
+        return self.solve_with_backtracking()
 class House:
     def __init__(self, number = "",color="", nationality="", beverage="", cigarette="", pet=""):
         self.number = number
@@ -46,11 +121,11 @@ def get_random_attr(houses, attributes):
         key: random.sample(values, len(values)) for key, values in attributes.items()
     }
     for i, house in enumerate(houses):
-        house.color = shuffled_attributes['colors'][i]
-        house.nationality = shuffled_attributes['nationalities'][i]
-        house.beverage = shuffled_attributes['beverages'][i]
-        house.cigarette = shuffled_attributes['cigarettes'][i]
-        house.pet = shuffled_attributes['pets'][i]
+        house.color = shuffled_attributes['color'][i]
+        house.nationality = shuffled_attributes['nationality'][i]
+        house.beverage = shuffled_attributes['beverage'][i]
+        house.cigarette = shuffled_attributes['cigarette'][i]
+        house.pet = shuffled_attributes['pet'][i]
 def get_original_attr(houses, og_attributes):
     #Assigns original attributes from zebra puzzle for testing
     for i, house in enumerate(houses):
@@ -105,11 +180,13 @@ def check_solution(houses, og_attributes):
 
     accuracy = (correct_attributes / total_attributes) * 100
     return accuracy
-def game_loop(houses, attributes, solver):
+def game_loop(houses, attributes, og_attributes, solver):
     print("GAME START")
-    clear_all(houses)
+    clear_all(houses)  # Start with cleared houses
+    get_random_attr(houses, attributes)  # Randomly assign initial values
+    house_print(houses)  # Show initial random assignments
+    
     while True:
-        house_print(houses)
         user_input = input("Enter 'clues' to view clues, 'check' to validate your solution, 'compare' to see solver times, or 'quit' to exit: ").strip()
 
         if user_input.lower() == 'quit':
@@ -134,22 +211,19 @@ def game_loop(houses, attributes, solver):
             print(f"Forward Checking time: {time_fc:.4f} seconds.\n")
         else:
             try:
-                # Split user input and handle multi-word values
                 parts = user_input.split()
                 if len(parts) < 4 or parts[0].lower() != 'set':
                     print("Invalid input format. Use: set <house_number> <attribute_type> <attribute_value>")
                     continue
-                
-                command, house_num, attr = parts[0], parts[1], parts[2]
-                value = " ".join(parts[3:])  # Join all remaining parts as the value
 
+                command, house_num, attr = parts[0], parts[1], parts[2]
+                value = " ".join(parts[3:])
                 if command.lower() == 'set':
                     user_assign_attribute(houses, house_num, attr.lower(), value)
                 else:
                     print("Unknown command. Use 'set' to assign attributes.")
             except ValueError:
                 print("Invalid input format. Use: set <house_number> <attribute_type> <attribute_value>")
-
 #Read in JSON file
 with open('attributes.json', 'r') as file:
     data = json.load(file)
@@ -160,20 +234,20 @@ with open('og_attributes.json', 'r') as og_file:
 ##print(data)
 ##print(data1)
 #Set objects
-attributes = data['attributes']
+#attributes = data['attributes']
 og_attributes = data1['original_attributes']
 clues = load_clues('clues.json')
-# Convert the loaded 'houses' from the JSON file into House objects
-houses = [House(house_data['number']) for house_data in data['houses']]
+##Initialize house numbers
+houses = [House(str(i + 1)) for i in range(5)]
 #Access attributes directly
-domains = {
+attributes = {
     'color': ['red', 'green', 'ivory', 'yellow', 'blue'],
     'nationality': ['Englishman', 'Spaniard', 'Ukrainian', 'Norwegian', 'Japanese'],
     'beverage': ['coffee', 'tea', 'milk', 'orange juice', 'water'],
     'cigarette': ['Old Gold', 'Kools', 'Chesterfields', 'Lucky Strike', 'Parliaments'],
     'pet': ['dog', 'snails', 'fox', 'horse', 'zebra']
 }
-solver = ZebraPuzzleSolver(domains, clues)
+solver = ZebraPuzzleSolver(attributes, clues)
 get_random_attr(houses, attributes)
 
 print("Random Puzzle")
@@ -191,4 +265,4 @@ house_print(houses)
 houses = [House(str(i + 1)) for i in range(5)]
 clear_all(houses)
 house_print(houses)
-game_loop(houses, og_attributes, solver)
+game_loop(houses, attributes, og_attributes, solver)

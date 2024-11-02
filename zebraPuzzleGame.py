@@ -5,6 +5,7 @@ import sys
 import random
 import time
 from backTracking import ZebraPuzzleSolver  # Ensure the file name matches
+from backtrackingRandom import ZebraRandomSolver
 
 # Initialize Pygame
 pygame.init()
@@ -70,6 +71,31 @@ class House:
         self.pet = ""
         # Reset option indices
         self.option_indices = {'color': 0, 'nationality': 0, 'beverage': 0, 'cigarette': 0, 'pet': 0}
+#Solution class
+class Solution:
+    def __init__(self):
+        # A list of dictionaries to store the attributes for each house
+        self.houses = [{ 'color': None, 'nationality': None, 'beverage': None, 'cigarette': None, 'pet': None } for _ in range(5)]
+
+    def set_attributes(self, index, color, nationality, beverage, cigarette, pet):
+        # Store attributes for a specific house at the given index
+        self.houses[index] = {
+            'color': color,
+            'nationality': nationality,
+            'beverage': beverage,
+            'cigarette': cigarette,
+            'pet': pet
+        }
+
+    def get_attributes(self, index):
+        # Return the attributes for a specific house at the given index
+        return self.houses[index]
+
+    def display(self):
+        # Print the attributes for all houses
+        for i, house in enumerate(self.houses):
+            print(f"House {i + 1}: {house}")
+
 
 # Initialize houses
 houses = [House(str(i + 1)) for i in range(5)]
@@ -87,27 +113,108 @@ def clear_all(houses):
     for house in houses:
         house.clear()
 
-def get_random_attr(houses, attributes):
+def get_random_attr(attributes):
+    # Create a new Solution instance
+    solution = Solution()
     shuffled_attributes = {key: random.sample(values, len(values)) for key, values in attributes.items()}
-    for i, house in enumerate(houses):
-        house.color = shuffled_attributes['color'][i]
-        house.nationality = shuffled_attributes['nationality'][i]
-        house.beverage = shuffled_attributes['beverage'][i]
-        house.cigarette = shuffled_attributes['cigarette'][i]
-        house.pet = shuffled_attributes['pet'][i]
+    
+    for i in range(5):
+        solution.set_attributes(
+            i,
+            shuffled_attributes['color'][i],
+            shuffled_attributes['nationality'][i],
+            shuffled_attributes['beverage'][i],
+            shuffled_attributes['cigarette'][i],
+            shuffled_attributes['pet'][i]
+        )
+    
+    return solution
+def generate_constraints_from_solution(solution):
+    """
+    Generate logical constraints based on a complete solution.
+
+    :param solution: A list of dictionaries representing each house's attributes.
+    :return: A list of constraints that describe the solution.
+    """
+    constraints = []
+    added_constraints = set()
+
+    # Define attribute types for reference
+    attribute_types = ['color', 'nationality', 'beverage', 'cigarette', 'pet']
+
+    # Generate 'same_house' constraints for all unique attribute pairs in each house
+    for house in solution:
+        attr_values = list(house.items())
+        for i in range(len(attr_values)):
+            for j in range(i + 1, len(attr_values)):
+                attr1, val1 = attr_values[i]
+                attr2, val2 = attr_values[j]
+                
+                # Ensure that attributes are of different types
+                if attr1 == attr2:
+                    continue  # Skip same attribute types
+                
+                pair = tuple(sorted([(attr1, val1), (attr2, val2)]))
+                if pair not in added_constraints:
+                    constraints.append({'same_house': [pair[0], pair[1]]})
+                    added_constraints.add(pair)
+
+    # Generate 'left_of' constraints based on house positions
+    for i in range(len(solution) - 1):
+        current_house = solution[i]
+        next_house = solution[i + 1]
+        # Example: The color of the current house is left_of the color of the next house
+        constraints.append({
+            'left_of': [('color', current_house['color']), ('color', next_house['color'])]
+        })
+
+    # Generate 'next_to' constraints based on attribute relationships
+    # For demonstration, link 'cigarette' of one house to 'pet' of the adjacent house
+    for i in range(len(solution) - 1):
+        current_house = solution[i]
+        next_house = solution[i + 1]
+        constraints.append({
+            'next_to': [('cigarette', current_house['cigarette']), ('pet', next_house['pet'])]
+        })
+
+    return constraints
+
+
+
+
 
 def get_original_attr(houses, og_attributes):
     for i, house in enumerate(houses):
         house.update(og_attributes[i])
 
-def check_solution(houses, og_attributes):
-    total_attributes = 5 * 5  # 5 houses with 5 attributes each
+def check_solution(houses, solution):
+    """
+    Check the current houses against the provided solution and calculate accuracy.
+    
+    :param houses: The current state of the game houses.
+    :param solution: The correct solution to compare against.
+    :return: The percentage of correctly assigned attributes.
+    """
+    print("Debug: Comparing solutions...")
+    total_attributes = len(houses) * len(attribute_keys)  # Total attributes across all houses
     correct_attributes = 0
-    for house, og in zip(houses, og_attributes):
-        for attribute in ['color', 'nationality', 'beverage', 'cigarette', 'pet']:
-            if getattr(house, attribute) == og[attribute]:
+    
+    # Iterate over each house and compare attributes
+    for house_index, (house, correct_house) in enumerate(zip(houses, solution)):
+        print(f"House {house_index + 1}:")
+        for attribute in attribute_keys:
+            house_value = getattr(house, attribute, None)  # Safely get attribute with default None
+            correct_value = correct_house.get(attribute)  # Ensure correct_house is a dict
+            if house_value == correct_value:
                 correct_attributes += 1
-    return (correct_attributes / total_attributes) * 100
+                print(f"  {attribute}: {house_value} (Correct)")
+            else:
+                print(f"  {attribute}: {house_value} (Incorrect, should be {correct_value})")
+    
+    accuracy = (correct_attributes / total_attributes) * 100
+    print(f"Debug: Total accuracy: {accuracy:.2f}%")
+    return accuracy
+
 
 def show_clues(screen):
     screen.fill(WHITE)
@@ -311,13 +418,58 @@ def visualize_solution(screen, houses, solver):
         return False
 
     backtrack_visual()
+#Solver test for randomly assigned attributes
+def run_solver_test(screen, houses, solver):
+    """
+    Run the Zebra puzzle solver and show the solution for the current attribute setup.
+    
+    :param screen: Pygame screen object.
+    :param houses: List of house objects to assign and display attributes.
+    :param solver: ZebraRandomSolver instance for solving.
+    """
+    # Start the solver with forward checking enabled
+    start_time = time.time()
+    solution = solver.solve()  # Use the forward-checking backtracking solver
+    elapsed_time = time.time() - start_time
+
+    if solution:
+        # Update the houses in the game to display the solution
+        for i, house_solution in enumerate(solution):
+            houses[i].update(house_solution)
+
+        # Display that the solver has completed and the time taken
+        update_output_box(screen, f"Solver completed in {elapsed_time:.2f}s.")
+    else:
+        update_output_box(screen, "No solution found by the solver.")
 
 def main():
-    global current_selection, cycle_mode
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    global current_selection, cycle_mode #sets current selection between options
+    screen = pygame.display.set_mode((WIDTH, HEIGHT)) #game screen
     pygame.display.set_caption("Zebra Puzzle")
     clock = pygame.time.Clock()
-    running = True
+    running = True #flag for game running
+    use_original = False #flag to set attributes as original or randomly assigned
+    random_solution = None #store a blank random solution
+    while True:
+        user_choice = input("Choose attribute setup: Type 'original' for the original Zebra puzzle or 'random' for random attributes: ").strip().lower()
+        if user_choice == 'original':
+            use_original = True
+            break
+        elif user_choice == 'random':
+            use_original = False
+            break
+        else:
+            print("Invalid input. Please type 'original' or 'random'.")
+    # Set up houses with chosen attributes
+    if use_original:
+        update_output_box(screen, "Using original Zebra puzzle attributes.")
+    else:
+        random_solution = get_random_attr(attributes).houses
+        generated_constraints = generate_constraints_from_solution(random_solution)
+        # Print generated constraints for debugging
+        for constraint in generated_constraints:
+            print(constraint)
+        update_output_box(screen, "Using randomly assigned attributes.")
 
     while running:
         screen.fill(WHITE)
@@ -342,29 +494,43 @@ def main():
                     try:
                         with open('og_attributes.json', 'r') as og_file:
                             og_attributes = json.load(og_file)['original_attributes']
-                        accuracy = check_solution(houses, og_attributes)
-                        update_output_box(screen, f"You are {accuracy:.2f}% accurate.")
-                        if accuracy == 100:
-                            update_output_box(screen, "Congratulations! You've solved the puzzle correctly!")
-                        else:
+                        if use_original:
+                            accuracy = check_solution(houses, og_attributes)
                             update_output_box(screen, f"You are {accuracy:.2f}% accurate.")
+                            if accuracy == 100:
+                                update_output_box(screen, "Congratulations! You've solved the puzzle correctly!")
+                            else:
+                                update_output_box(screen, f"You are {accuracy:.2f}% accurate.")
+                        else:
+                            accuracy = check_solution(houses, random_solution)
+                            if accuracy == 100:
+                                update_output_box(screen, "Congratulations! You've solved the puzzle correctly!")
+                            else:
+                                update_output_box(screen, f"You are {accuracy:.2f}% accurate.")
                     except (FileNotFoundError, json.JSONDecodeError):
                         update_output_box(screen, "Original attributes not found or invalid.")
                 elif event.key == pygame.K_a:  # Press 'a' to solve the puzzle
                     print("AI solving puzzle now ...")
-                    # Initialize the solver with debug mode enabled
-                    solver = ZebraPuzzleSolver(attributes, clues, debug=True)
+                    
+                    if use_original:
+                        # Solve using the original attributes
+                        solver = ZebraPuzzleSolver(attributes, clues, debug=True)
+                    else:
+                        # Solve using the randomly assigned attributes
+                        solver = ZebraRandomSolver(attributes, constraints=generated_constraints)
+
+                    # Run the solver and display the result
                     solution = solver.solve()
 
-                    if solution:
+                    if solution:  # Ensure solution is a list or valid iterable
                         update_output_box(screen, "Solution found!")
                         for i, house in enumerate(solution):
                             print(f"House {i + 1}: {house}")
-                        # Update the Pygame houses to reflect the solution
                         for i in range(5):
                             houses[i].update(solution[i])
                     else:
                         update_output_box(screen, "No solution found.")
+
                 elif event.key == pygame.K_r:
                     update_output_box(screen, "Houses reset!")
                     clear_all(houses)
