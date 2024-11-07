@@ -15,7 +15,7 @@ class ZebraPuzzleSolver:
                                "nationality": ["Englishman", "Spaniard", "Ukrainian", "Norwegian", "Japanese"],
                                "beverage": ["coffee", "tea", "milk", "orange juice", "water"],
                                "cigarette": ["Old Gold", "Kools", "Chesterfields", "Lucky Strike", "Parliaments"],
-                               "pet": ["dog", "snails", "fox", "horse", "zebra"]
+                               "pet": ["dog", "snail", "fox", "horse", "zebra"]
                            }
         :param clues: List of clues where each clue is a dictionary with 'id' and 'description'.
                       Example:
@@ -78,7 +78,7 @@ class ZebraPuzzleSolver:
             elif "green house" in description and "immediately to the right of the ivory house" in description:
                 self._add_relative_position_constraint("color", "ivory", "color", "green", direction="right")
             elif "old gold smoker" in description and "owns snails" in description:
-                self._add_same_attribute_constraint("cigarette", "Old Gold", "pet", "snails")
+                self._add_same_attribute_constraint("cigarette", "Old Gold", "pet", "snail")
             elif "kools" in description and "yellow house" in description:
                 self._add_same_attribute_constraint("cigarette", "Kools", "color", "yellow")
             elif ("milk is drunk in the center house" in description) or ("milk is drunk in the middle house" in description) or (("center house" in description or "middle house" in description) and "milk" in description):

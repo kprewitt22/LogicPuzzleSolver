@@ -34,6 +34,14 @@ BUTTON_FONT = pygame.font.SysFont('Arial', 30)
 output_message = ""
 message_time = 0  # Timestamp for when the message was last updated
 MESSAGE_DISPLAY_DURATION = 5  # Duration in seconds for the message to stay
+# Load background image
+try:
+    background_image = pygame.image.load('./albert.png').convert()
+    # Scale the image to fit the screen if necessary
+    background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
+except pygame.error as e:
+    print(f"Unable to load background image: {e}")
+    background_image = None  # Proceed without background
 # Load attributes
 with open('attributes.json', 'r') as file:
     attributes_data = json.load(file)
@@ -150,7 +158,7 @@ cycle_mode = False
 def clear_all(houses):
     for house in houses:
         house.clear()
-
+#Get randomly assigned attributes for the puzle
 def get_random_attr(attributes):
     # Create a new Solution instance
     solution = Solution()
@@ -167,13 +175,13 @@ def get_random_attr(attributes):
         )
     
     return solution
-
+#Generate Constraint dictionary from solution to puzzle
 def generate_constraints_from_solution(solution):
     """
     Generate logical constraints based on a complete solution.
 
     :param solution: A list of dictionaries representing each house's attributes.
-    :return: A list of constraints that describe the solution.
+    :return: A list of constraints that describe the solution, each with associated house numbers.
     """
     constraints = []
     added_constraints = set()
@@ -182,29 +190,32 @@ def generate_constraints_from_solution(solution):
     attribute_types = ['color', 'nationality', 'beverage', 'cigarette', 'pet']
 
     # Generate 'same_house' constraints for all unique attribute pairs in each house
-    for house in solution:
+    for house_num, house in enumerate(solution, start=1):
         attr_values = list(house.items())
         for i in range(len(attr_values)):
             for j in range(i + 1, len(attr_values)):
                 attr1, val1 = attr_values[i]
                 attr2, val2 = attr_values[j]
-                
+
                 # Ensure that attributes are of different types
                 if attr1 == attr2:
                     continue  # Skip same attribute types
-                
+
                 pair = tuple(sorted([(attr1, val1), (attr2, val2)]))
                 if pair not in added_constraints:
-                    constraints.append({'same_house': [pair[0], pair[1]]})
+                    constraints.append({
+                        'same_house': [pair[0], pair[1]],
+                        'houses': [house_num]
+                    })
                     added_constraints.add(pair)
 
     # Generate 'left_of' constraints based on house positions
     for i in range(len(solution) - 1):
         current_house = solution[i]
         next_house = solution[i + 1]
-        # Example: The color of the current house is left_of the color of the next house
         constraints.append({
-            'left_of': [('color', current_house['color']), ('color', next_house['color'])]
+            'left_of': [('color', current_house['color']), ('color', next_house['color'])],
+            'houses': [i + 1, i + 2]
         })
 
     # Generate 'next_to' constraints based on attribute relationships
@@ -213,19 +224,49 @@ def generate_constraints_from_solution(solution):
         current_house = solution[i]
         next_house = solution[i + 1]
         constraints.append({
-            'next_to': [('cigarette', current_house['cigarette']), ('pet', next_house['pet'])]
+            'next_to': [('cigarette', current_house['cigarette']), ('pet', next_house['pet'])],
+            'houses': [i + 1, i + 2]
         })
 
     return constraints
+#Shuffle constraints for uniqueness
+def shuffle_constraints_no_consecutive_same_house(constraints):
+    """
+    Shuffle constraints ensuring that no two consecutive constraints involve the same house.
 
+    :param constraints: List of constraint dictionaries, each with a 'houses' key listing house numbers involved.
+    :return: Shuffled list of constraints adhering to the no-consecutive-same-house rule.
+    """
+    if not constraints:
+        return []
 
+    attempts = 0
+    max_attempts = 1000  # Prevent infinite loops
 
+    while attempts < max_attempts:
+        random.shuffle(constraints)
+        conflict = False
 
+        for i in range(len(constraints) - 1):
+            houses_current = set(constraints[i].get('houses', []))
+            houses_next = set(constraints[i + 1].get('houses', []))
+            if houses_current & houses_next:
+                conflict = True
+                break  # Found a conflict; reshuffle
 
+        if not conflict:
+            return constraints
+
+        attempts += 1
+
+    print("Warning: Could not shuffle constraints without consecutive house references after multiple attempts.")
+    return constraints  # Return the last shuffled list even if it has conflicts
+
+#Get orignal attributes assigned to houses
 def get_original_attr(houses, og_attributes):
     for i, house in enumerate(houses):
         house.update(og_attributes[i])
-
+#Check the solution of either random or original puzzle
 def check_solution(houses, solution):
     """
     Check the current houses against the provided solution and calculate accuracy.
@@ -289,7 +330,10 @@ def main_menu(screen):
 
     running_menu = True
     while running_menu:
-        screen.fill(WHITE)
+        if background_image:
+            screen.blit(background_image, (0, 0))
+        else:
+            screen.fill(WHITE)  # Fallback to white background if image isn't loaded
 
         # Render the title
         title_text = BUTTON_FONT.render("Zebra Puzzle", True, BLACK)
@@ -417,7 +461,7 @@ def controls_info_screen(screen):
             y_offset += FONT_SIZE + 5
 
         # Instruction to return
-        return_text = FONT.render("Press Escape to return to return to submenu.", True, BLACK)
+        return_text = FONT.render("Press Escape to return to submenu.", True, BLACK)
         screen.blit(return_text, (WIDTH // 2 - return_text.get_width() // 2, HEIGHT - 100))
 
         for event in pygame.event.get():
@@ -543,23 +587,23 @@ def translate_constraints(constraints):
     # Helper functions
     def describe_person(nationality):
         """Returns a descriptive phrase for a person based on nationality."""
-        return f"The {nationality}"
+        return f"The {nationality} person"
 
     def describe_house(color):
         """Returns a descriptive phrase for a house based on its color."""
         return f"the {color.lower()} house"
 
     def describe_drink(beverage):
-        """Returns a descriptive phrase for a drink based on the beverage."""
-        return f"drinks {beverage.lower()}"
+        """Returns the beverage in lowercase."""
+        return f"{beverage.lower()}"
 
     def describe_smoker(cigarette):
         """Returns a descriptive phrase for a smoker based on the cigarette brand."""
-        return f"smokes {cigarette}"
+        return f"{cigarette} smoker"
 
     def describe_pet(pet):
-        """Returns a descriptive phrase for a pet."""
-        return f"has {pet.lower()}"
+        """Returns a descriptive phrase for a pet with the correct article."""
+        return f"a {pet.lower()}"
 
     def construct_same_house_sentence(attr1, val1, attr2, val2):
         """Constructs a sentence for 'same_house' constraints based on attribute roles."""
@@ -571,48 +615,43 @@ def translate_constraints(constraints):
         elif role2 == 'person' and role1 == 'house':
             return f"{describe_person(val2)} lives in {describe_house(val1)}."
         elif role1 == 'smoker' and role2 == 'pet':
-            return f"The {val1} smoker {describe_pet(val2)}."
+            return f"The {describe_smoker(val1)} has {describe_pet(val2)}."
         elif role2 == 'smoker' and role1 == 'pet':
-            return f"The {val2} smoker {describe_pet(val1)}."
+            return f"The {describe_smoker(val2)} has {describe_pet(val1)}."
         elif role1 == 'person' and role2 == 'drink':
-            return f"{describe_person(val1)} {describe_drink(val2)}."
+            return f"{describe_person(val1)} drinks {describe_drink(val2)}."
         elif role2 == 'person' and role1 == 'drink':
-            return f"{describe_person(val2)} {describe_drink(val1)}."
+            return f"{describe_person(val2)} drinks {describe_drink(val1)}."
         elif role1 == 'smoker' and role2 == 'drink':
-            return f"The {val1} smoker {describe_drink(val2)}."
+            return f"The {describe_smoker(val1)} drinks {describe_drink(val2)}."
         elif role2 == 'smoker' and role1 == 'drink':
-            return f"The {val2} smoker {describe_drink(val1)}."
+            return f"The {describe_smoker(val2)} drinks {describe_drink(val1)}."
         elif role1 == 'drink' and role2 == 'house':
-            return f"The {val1.lower()} is in {describe_house(val2)}."
+            return f"{describe_drink(val1).capitalize()} is drunk in {describe_house(val2)}."
         elif role2 == 'drink' and role1 == 'house':
-            return f"The {val2.lower()} is in {describe_house(val1)}."
+            return f"{describe_drink(val2).capitalize()} is drunk in {describe_house(val1)}."
         elif role1 == 'person' and role2 == 'pet':
-            return f"{describe_person(val1)} {describe_pet(val2)}."
+            return f"{describe_person(val1)} has {describe_pet(val2)}."
         elif role2 == 'person' and role1 == 'pet':
-            return f"{describe_person(val2)} {describe_pet(val1)}."
+            return f"{describe_person(val2)} has {describe_pet(val1)}."
         elif role1 == 'person' and role2 == 'smoker':
-            return f"{describe_person(val1)} {describe_smoker(val2)}."
+            return f"{describe_person(val1)} is a {describe_smoker(val2)}."
         elif role2 == 'person' and role1 == 'smoker':
-            return f"{describe_person(val2)} {describe_smoker(val1)}."
+            return f"{describe_person(val2)} is a {describe_smoker(val1)}."
         elif role1 == 'pet' and role2 == 'house':
-            return f"The {val1.lower()} is in {describe_house(val2)}."
+            return f"The owner with {describe_pet(val1)} is in {describe_house(val2)}."
         elif role2 == 'pet' and role1 == 'house':
-            return f"The {val2.lower()} is in {describe_house(val1)}."
+            return f"The owner with {describe_pet(val2)} is in {describe_house(val1)}."
         elif role1 == 'smoker' and role2 == 'house':
-            return f"The {val1} smoker is in {describe_house(val2)}."
+            return f"The {describe_smoker(val1)} is in {describe_house(val2)}."
         elif role2 == 'smoker' and role1 == 'house':
-            return f"The {val2} smoker is in {describe_house(val1)}."
+            return f"The {describe_smoker(val2)} is in {describe_house(val1)}."
         elif role1 == 'beverage' and role2 == 'pet':
-            return f"The house with {describe_pet(val2)} has a preference for {val1.lower()}."
+            return f"The house with {describe_pet(val2)} enjoys {describe_drink(val1)}."
         elif role2 == 'beverage' and role1 == 'pet':
-            return f"The house with {describe_pet(val1)} has a preference for {val2.lower()}."
-        elif role1 == 'pet' and role2 == 'beverage':
-            return f"The house with {describe_pet(val1)} enjoys {val2.lower()}."
-        elif role2 == 'pet' and role1 == 'beverage':
-            return f"The house with {describe_pet(val2)} enjoys {val1.lower()}."
+            return f"The house with {describe_pet(val1)} enjoys {describe_drink(val2)}."
         else:
-            return f"The {val1} is in the same house as the {val2}."
-
+            return f"The {val1.lower()} is in the same house as the {val2.lower()}."
 
     def construct_left_of_sentence(attr1, val1, attr2, val2):
         """Constructs a sentence for 'left_of' constraints based on attribute roles."""
@@ -629,38 +668,49 @@ def translate_constraints(constraints):
         role2 = ATTRIBUTE_ROLES.get(attr2)
         
         if role1 == 'smoker' and role2 == 'pet':
-            return f"The {val1} smoker is next to the house with {describe_pet(val2)}."
+            return f"The {describe_smoker(val1)} is next to the house with {describe_pet(val2)}."
         elif role2 == 'smoker' and role1 == 'pet':
-            return f"The {val2} smoker is next to the house with {describe_pet(val1)}."
+            return f"The {describe_smoker(val2)} is next to the house with {describe_pet(val1)}."
         elif role1 == 'person' and role2 == 'pet':
             return f"The {val1} person is next to the house with {describe_pet(val2)}."
         elif role2 == 'person' and role1 == 'pet':
             return f"The {val2} person is next to the house with {describe_pet(val1)}."
         else:
             return f"The {val1.lower()} {attr1} is next to the {val2.lower()} {attr2}."
+
     translated = []
+    previous_houses = set()  # Track houses referenced in the previous clue
+
     for constraint in constraints:
         if 'same_house' in constraint:
             (attr1, val1), (attr2, val2) = constraint['same_house']
             sentence = construct_same_house_sentence(attr1, val1, attr2, val2)
-            if sentence not in translated:
-                translated.append(sentence)
-        
+            current_houses = set(constraint.get('houses', []))
         elif 'left_of' in constraint:
             (attr1, val1), (attr2, val2) = constraint['left_of']
             sentence = construct_left_of_sentence(attr1, val1, attr2, val2)
-            if sentence not in translated:
-                translated.append(sentence)
-        
+            current_houses = set(constraint.get('houses', []))
         elif 'next_to' in constraint:
             (attr1, val1), (attr2, val2) = constraint['next_to']
             sentence = construct_next_to_sentence(attr1, val1, attr2, val2)
-            if sentence not in translated:
-                translated.append(sentence)
+            current_houses = set(constraint.get('houses', []))
+        else:
+            continue  # Handle other constraint types if any
         
-        # Handle more constraint types as needed
-    
+        # Check if current houses overlap with previous houses
+        if current_houses & previous_houses:
+            # If overlap exists, skip adding this clue to avoid consecutive mentions
+            continue
+        
+        if sentence not in translated:
+            translated.append(sentence)
+            previous_houses = current_houses  # Update previous houses
+        else:
+            # If the sentence is already in translated, skip to avoid duplicates
+            continue
+
     return translated
+
 
 
 
@@ -894,8 +944,10 @@ def main():
                 random_solution_instance = get_random_attr(attributes)
                 random_solution = random_solution_instance.houses
                 generated_constraints = generate_constraints_from_solution(random_solution)
+                shuffled_constraints = shuffle_constraints_no_consecutive_same_house(generated_constraints)
                 # Translate constraints to readable clues
-                translated_clues = translate_constraints(generated_constraints)
+                random.shuffle(shuffled_constraints)
+                translated_clues = translate_constraints(shuffled_constraints)
                 # Print generated constraints for debugging
                 print("\nGenerated Constraints:")
                 for constraint in generated_constraints:
@@ -906,7 +958,11 @@ def main():
                 game_state = GameState.EXIT
 
         elif game_state == GameState.GAMEPLAY:
-            screen.fill(WHITE)
+            # Blit the background image first
+            if background_image:
+                screen.blit(background_image, (0, 0))
+            else:
+                screen.fill(WHITE)  # Fallback to white background if image isn't loaded
             draw_grid(screen)
             draw_houses(screen, houses)
             draw_output_box(screen)

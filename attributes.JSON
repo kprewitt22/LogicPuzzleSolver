@@ -4,6 +4,6 @@
       "nationality": ["Englishman", "Spaniard", "Ukrainian", "Norwegian", "Japanese"],
       "beverage": ["coffee", "tea", "milk", "orange juice", "water"],
       "cigarette": ["Old Gold", "Kools", "Chesterfields", "Lucky Strike", "Parliaments"],
-      "pet": ["dog", "snails", "fox", "horse", "zebra"]
+      "pet": ["dog", "snail", "fox", "horse", "zebra"]
   }
 }
