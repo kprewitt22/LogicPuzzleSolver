@@ -25,11 +25,11 @@ class ZebraRandomSolver:
         """
         problem = Problem()
 
-        # Define variables: Each attribute value is a variable with domain as house numbers 1 to num_houses
+        # Define variables: Each attribute value is a variable with domain as house numbers 1 to 5
         for attr, values in self.attributes.items():
             problem.addVariables(values, range(1, self.num_houses + 1))
 
-        # Add AllDifferent constraints for each attribute type
+        # Add AllDifferent constraints for each attribute type to ensure uniqueness 
         for attr, values in self.attributes.items():
             problem.addConstraint(AllDifferentConstraint(), values)
 

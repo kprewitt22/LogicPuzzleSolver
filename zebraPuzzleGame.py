@@ -4,12 +4,18 @@ import json
 import sys
 import random
 import time
+import copy
 from backTracking import ZebraPuzzleSolver  #Deals with original constraints
 from backtrackingRandom import ZebraRandomSolver #Deals with random dynamically generated constraints
 from enum import Enum
 # Initialize Pygame
 pygame.init()
-
+# **Seed the random number generator with current time**
+random.seed(time.time())
+# Global variables for timing
+game_start_time = None
+solver_time = None
+total_time_elapsed = None
 # Screen dimensions
 WIDTH, HEIGHT = 1000, 700
 GRID_MARGIN_TOP = 50
@@ -162,20 +168,23 @@ def clear_all(houses):
 def get_random_attr(attributes):
     # Create a new Solution instance
     solution = Solution()
-    shuffled_attributes = {key: random.sample(values, len(values)) for key, values in attributes.items()}
-    
+    randomized_attributes = {}
+    for attr, values in attributes.items():
+        randomized_values = copy.deepcopy(values)
+        random.shuffle(randomized_values)
+        randomized_attributes[attr] = randomized_values
+    #Set solution for randomized attributes to confirm choices
     for i in range(5):
         solution.set_attributes(
             i,
-            shuffled_attributes['color'][i],
-            shuffled_attributes['nationality'][i],
-            shuffled_attributes['beverage'][i],
-            shuffled_attributes['cigarette'][i],
-            shuffled_attributes['pet'][i]
+            randomized_attributes['color'][i],
+            randomized_attributes['nationality'][i],
+            randomized_attributes['beverage'][i],
+            randomized_attributes['cigarette'][i],
+            randomized_attributes['pet'][i]
         )
-    
     return solution
-#Generate Constraint dictionary from solution to puzzle
+#Generate Constraint dictionary from solution to puzzle. These will be expressed as pairs for later translation into clues
 def generate_constraints_from_solution(solution):
     """
     Generate logical constraints based on a complete solution.
@@ -323,26 +332,27 @@ def main_menu(screen):
         pygame.quit()
         sys.exit()
 
-    # Create buttons
+    # Create buttons for original, random, or quit
     buttons.append(Button("Original Puzzle", center_x - button_width//2, start_y, button_width, button_height, start_original))
     buttons.append(Button("Random Puzzle", center_x - button_width//2, start_y + button_height + button_spacing, button_width, button_height, start_random))
     buttons.append(Button("Quit", center_x - button_width//2, start_y + 2*(button_height + button_spacing), button_width, button_height, quit_game))
 
     running_menu = True
     while running_menu:
+        #Bug: Attempt to run background image or white if fails
         if background_image:
             screen.blit(background_image, (0, 0))
         else:
             screen.fill(WHITE)  # Fallback to white background if image isn't loaded
 
-        # Render the title
+        # Render the title screen
         title_text = BUTTON_FONT.render("Zebra Puzzle", True, BLACK)
         title_rect = title_text.get_rect(center=(center_x, start_y - 80))
         screen.blit(title_text, title_rect)
-
+        #Draw buttons via for loop
         for button in buttons:
             button.draw(screen)
-
+        #Set loop for game events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -374,16 +384,17 @@ def sub_menu(screen):
         choice = 'main_menu'
         nonlocal running_submenu
         running_submenu = False
-
+    #Controls information submenu
     def controls_info():
         nonlocal choice
         choice = 'controls_info'
         nonlocal running_submenu
         running_submenu = False
-
+    #Select to quit
     def quit_game():
         pygame.quit()
         sys.exit()
+    #Select to unpause
     def unpause_game():
         nonlocal choice
         choice = 'unpause'
@@ -396,12 +407,18 @@ def sub_menu(screen):
     buttons.append(Button("Unpause Game", center_x - button_width//2, start_y + 3*(button_height + button_spacing), button_width, button_height, unpause_game))
     running_submenu = True
     while running_submenu:
-        screen.fill(WHITE)
+        screen.fill(WHITE) #Submenu background
 
         # Render the submenu title
         title_text = BUTTON_FONT.render("Paused", True, BLACK)
         title_rect = title_text.get_rect(center=(center_x, start_y - 80))
         screen.blit(title_text, title_rect)
+        # Render solver times if available
+        if solver_time is not None and total_time_elapsed is not None:
+            time_text = FONT.render(f"Solver Time: {solver_time:.2f}s", True, BLACK)
+            total_time_text = FONT.render(f"Total Time Elapsed: {total_time_elapsed:.2f}s", True, BLACK)
+            screen.blit(time_text, (center_x - time_text.get_width() // 2, start_y - 40))
+            screen.blit(total_time_text, (center_x - total_time_text.get_width() // 2, start_y - 10))
 
         for button in buttons:
             button.draw(screen)
@@ -437,7 +454,7 @@ def controls_info_screen(screen):
         title_rect = title_text.get_rect(center=(WIDTH // 2, 100))
         screen.blit(title_text, title_rect)
 
-        # Define controls info content
+        # Define controls info content for users
         controls = [
             "Mouse Click:",
             "  - Click on a cell to cycle through attribute options.",
@@ -576,7 +593,7 @@ ATTRIBUTE_ROLES = {
     'cigarette': 'smoker',
     'pet': 'pet'
 }
-
+#Translate contraints into clues 
 def translate_constraints(constraints):
     """
     Translates a list of constraint dictionaries into readable English sentences.
@@ -586,27 +603,27 @@ def translate_constraints(constraints):
     """
     # Helper functions
     def describe_person(nationality):
-        """Returns a descriptive phrase for a person based on nationality."""
+        #Returns a descriptive phrase for a person based on nationality.
         return f"The {nationality} person"
 
     def describe_house(color):
-        """Returns a descriptive phrase for a house based on its color."""
+        #Returns a descriptive phrase for a house based on its color.
         return f"the {color.lower()} house"
 
     def describe_drink(beverage):
-        """Returns the beverage in lowercase."""
+        #Returns the beverage in lowercase.
         return f"{beverage.lower()}"
 
     def describe_smoker(cigarette):
-        """Returns a descriptive phrase for a smoker based on the cigarette brand."""
+        #Returns a descriptive phrase for a smoker based on the cigarette brand.
         return f"{cigarette} smoker"
 
     def describe_pet(pet):
-        """Returns a descriptive phrase for a pet with the correct article."""
+        #Returns a descriptive phrase for a pet with the correct article.
         return f"a {pet.lower()}"
 
     def construct_same_house_sentence(attr1, val1, attr2, val2):
-        """Constructs a sentence for 'same_house' constraints based on attribute roles."""
+        #Constructs a sentence for 'same_house' constraints based on attribute roles.
         role1 = ATTRIBUTE_ROLES.get(attr1)
         role2 = ATTRIBUTE_ROLES.get(attr2)
         
@@ -726,7 +743,7 @@ def draw_grid(screen):
                 CELL_HEIGHT
             )
             pygame.draw.rect(screen, GRID_COLOR, rect, 1)
-
+#Draw house headers for grid
 def draw_houses(screen, houses):
     # Draw header labels in the top row
     headers = ['House', 'Color', 'Nationality', 'Beverage', 'Cigarette', 'Pet']
@@ -752,12 +769,12 @@ def draw_houses(screen, houses):
             text_x = GRID_MARGIN_LEFT + col * CELL_WIDTH + (CELL_WIDTH - text_surface.get_width()) // 2
             text_y = GRID_MARGIN_TOP + row * CELL_HEIGHT + (CELL_HEIGHT - text_surface.get_height()) // 2
             screen.blit(text_surface, (text_x, text_y))
-
+#Update the output box below(think of as print to console)
 def update_output_box(screen, message):
     global output_message, message_time
     output_message = message  # Update the global message variable
     message_time = time.time()  # Set the current time as the last update time
-
+#Draw the output box
 def draw_output_box(screen):
     global output_message
     current_time = time.time()
@@ -816,7 +833,7 @@ def handle_click(pos, houses, attributes, screen):
             cycle_mode = True
             setattr(house, attr_type, attributes[attr_type][0])
 
-
+#Finalize choice after clicking through options and prevents duplicate answers
 def finalize_selection(screen):
     global current_selection, cycle_mode
 
@@ -911,7 +928,7 @@ def run_solver_test(screen, houses, solver):
             houses[i].update(house_solution)
 
         # Display that the solver has completed and the time taken
-        update_output_box(screen, f"Solver completed in {elapsed_time:.2f}s.")
+        update_output_box(screen, f"Solver completed in {elapsed_time:.9f}s.")
     else:
         update_output_box(screen, "No solution found by the solver.")
 
@@ -938,6 +955,7 @@ def main():
                 except (FileNotFoundError, json.JSONDecodeError) as e:
                     update_output_box(screen, "Original attributes not found or invalid.")
                     print("Error loading og_attributes.json:", e)
+                game_start_time = time.time()  # Set the start time
                 game_state = GameState.GAMEPLAY
             elif choice == 'random':
                 use_original = False
@@ -945,14 +963,13 @@ def main():
                 random_solution = random_solution_instance.houses
                 generated_constraints = generate_constraints_from_solution(random_solution)
                 shuffled_constraints = shuffle_constraints_no_consecutive_same_house(generated_constraints)
-                # Translate constraints to readable clues
-                random.shuffle(shuffled_constraints)
                 translated_clues = translate_constraints(shuffled_constraints)
                 # Print generated constraints for debugging
                 print("\nGenerated Constraints:")
                 for constraint in generated_constraints:
                     print(constraint)
                 update_output_box(screen, "Using randomly assigned attributes.")
+                game_start_time = time.time()  # Set the start time
                 game_state = GameState.GAMEPLAY
             elif choice == 'quit':
                 game_state = GameState.EXIT
@@ -1017,16 +1034,22 @@ def main():
                             solver = ZebraRandomSolver(attributes, constraints=generated_constraints)
 
                         # Run the solver and display the result
+                        start_solver = time.time()
                         solution = solver.solve()
-
+                        end_solver = time.time()
+                        solver_time = end_solver - start_solver
+                        if game_start_time:
+                            total_time_elapsed = end_solver - game_start_time
+                        else:
+                            total_time_elapsed = solver_time  # Fallback if game_start_time is not set
                         if solution:  # Ensure solution is a list or valid iterable
-                            update_output_box(screen, "Solution found!")
+                            update_output_box(screen, f"Solver completed in {solver_time:.9f}s. Total time elapsed: {total_time_elapsed:.9f}s.")
                             for i, house in enumerate(solution):
                                 print(f"House {i + 1}: {house}")
                             for i in range(5):
                                 houses[i].update(solution[i])
                         else:
-                            update_output_box(screen, "No solution found.")
+                            update_output_box(screen, f"No solution found. Solver time: {solver_time:.9f}s. Total time elapsed: {total_time_elapsed:.9f}s.")
 
                     elif event.key == pygame.K_r:
                         update_output_box(screen, "Houses reset!")
