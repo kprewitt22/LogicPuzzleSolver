@@ -10,8 +10,6 @@ A Python-based AI solver for the classic Zebra Puzzle (also known as Einstein's 
 - [Game Instructions](#game-instructions)
 - [Project Structure](#project-structure)
 - [Benchmarking](#benchmarking)
-- [Contributing](#contributing)
-- [License](#license)
 
 ## Project Overview
 
