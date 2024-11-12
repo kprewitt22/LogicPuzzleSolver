@@ -27,7 +27,25 @@ The Zebra Puzzle, a famous logic puzzle first published in *Life* magazine in 19
 1. Who owns the zebra?
 2. Who drinks water?
 
-The original fifteen clues include conditions about the colors of five houses, nationalities, pets, drinks, and cigarette brands of the residents. Our project solves this puzzle by implementing a backtracking algorithm with forward checking, and by using constraint satisfaction principles with the Python Constraint library.
+The original fifteen clues include conditions about the colors of five houses, nationalities, pets, drinks, and cigarette brands of the residents. 
+#### Clues:
+There are five houses.
+The Englishman lives in the red house.
+The Spaniard owns the dog.
+Coffee is drunk in the green house.
+The Ukrainian drinks tea.
+The green house is immediately to the right of the ivory house.
+The Old Gold smoker owns snails.
+Kools are smoked in the yellow house.
+Milk is drunk in the middle house.
+The Norwegian lives in the first house.
+The man who smokes Chesterfields lives in the house next to the man with the fox.
+Kools are smoked in the house next to the house where the horse is kept.
+The Lucky Strike smoker drinks orange juice.
+The Japanese smokes Parliaments.
+The Norwegian lives next to the blue house.
+
+Our project solves this puzzle by implementing a backtracking algorithm with forward checking, and by using constraint satisfaction principles with the Python Constraint library.
 
 ### Project Goals
 
