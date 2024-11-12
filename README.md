@@ -32,9 +32,9 @@ The original fifteen clues include conditions about the colors of five houses, n
 ### Project Goals
 
 This project allows users to:
-- Solve the original Zebra Puzzle interactively.
+- Solve the original and random Zebra Puzzle interactively.
 - Solve randomly generated puzzles with dynamically created constraints.
-- Benchmark the AI solver's performance using different solving strategies.
+- Benchmark the AI solver's performance between randomly generated and the original puzzle.
 
 Additionally, the project features an AI solver implemented with Python Constraint library and an interactive mini-game with a user-friendly Pygame UI. The AI automatically applies constraints based on clues, uses backtracking with forward checking to increase efficiency, and tracks the time taken to solve each puzzle. Users can test the AI’s capabilities against their own attempts in real-time.
 
@@ -111,7 +111,7 @@ The project also benchmarks solver performance via *Backtracking with Forward Ch
 
 ### Results
 
-Our benchmarking results show that both methods successfully solve the puzzle. However, using forward checking generally yields faster solutions due to the early elimination of infeasible paths. The benchmarking tool tracks and displays solver performance for each solving method, allowing comparison of execution times.
+Our benchmarking results show that both methods successfully solve the puzzle. The benchmarking tool tracks and displays solver performance for each solving method, allowing comparison of execution times. The random puzzles were difficult to gauge due to constraints being random and structured to avoid duplicate or similar clues, as some generated were faster to solve than others. Generally, our random clues were not too difficult because it would usually result in an insolvable puzzle. Focusing heavily on positional attributes of being next to and in the same house, it increased in solver accuracy as it balanced between too strict and too easy of clues. 
 
 
 
