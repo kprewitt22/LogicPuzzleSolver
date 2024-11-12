@@ -9,7 +9,7 @@ env/
 .venv/
 env.bak/
 venv/
-myenv/
+.myenv/
 
 # macOS system files
 .DS_Store
