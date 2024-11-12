@@ -100,37 +100,22 @@ python zebraPuzzleGame.py
 - `zebraPuzzleGame.py`: Main game file, initializes Pygame and manages the game loop, rendering, and user interactions.
 - `backtracking.py`: Solver for the original Zebra Puzzle with pre-set constraints.
 - `backtrackingRandom.py`: Solver for randomized puzzles with dynamic constraints.
-- `requirements.txt`: Lists required libraries for easy installation.
+- `requirements.txt`: Lists required libraries for installation.
 - `attributes.json`: Stores lists of all possible attributes (colors, nationalities, etc.).
 - `clues.json`: Contains clues for the original Zebra Puzzle.
 - `og_attributes.json`: Holds the solution for the original Zebra Puzzle, used for accuracy checking.
 
 ## Benchmarking
 
-The project also benchmarks solver performance with two solving techniques:
-1. **Standard Backtracking**
-2. **Backtracking with Forward Checking**
+The project also benchmarks solver performance via *Backtracking with Forward Checking* as the heuristic. This is usually within ms or even smaller, due to the library pruning
 
 ### Results
 
 Our benchmarking results show that both methods successfully solve the puzzle. However, using forward checking generally yields faster solutions due to the early elimination of infeasible paths. The benchmarking tool tracks and displays solver performance for each solving method, allowing comparison of execution times.
 
-## Contributing
 
-Contributions are welcome! Here’s how you can contribute to the project:
 
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature-name`).
-3. Commit your changes (`git commit -am 'Add feature'`).
-4. Push to the branch (`git push origin feature-name`).
-5. Open a Pull Request.
 
-Please ensure that your code follows PEP 8 style guidelines and includes relevant comments and documentation.
 
-## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
----
-
-This README includes detailed setup instructions, usage, project structure, and insights into the AI solving process and benchmarking methods. The information aims to help users install, run, and understand the purpose and functionality of the Zebra Puzzle solver.
