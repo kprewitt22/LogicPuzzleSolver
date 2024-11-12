@@ -16,3 +16,6 @@ venv/
 # Python-specific cache and logs
 *.log
 .cache/
+#Specific files
+gameOverview.drawio
+gameOverview.drawio.png
