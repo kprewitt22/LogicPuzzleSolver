@@ -117,8 +117,9 @@ pip install -r requirements.txt
 ### Requirements File (`requirements.txt`)
 
 ```
-pygame==2.1.0
-python-constraint==1.4.0
+pygame==2.6.1
+numpy==2.1.3
+python-constraint==1.4
 ```
 
 ## Usage
