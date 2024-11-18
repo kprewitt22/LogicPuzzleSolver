@@ -77,31 +77,31 @@ cd zebra-puzzle-solver
 ```
 
 
-## Setting Up a Python Virtual Environment
+### Setting Up a Python Virtual Environment
 
 Follow the steps below to set up and activate a Python virtual environment for your system:
 
-### 1. Create the Virtual Environment
+#### 1. Create the Virtual Environment
 Run the following command to create a virtual environment named `venv`:
 
 ```bash
 python -m venv venv
 ```
 
-### 2. Activate the Virtual Environment
+#### 2. Activate the Virtual Environment
 Activation differs depending on your operating system:
 
-#### **Windows**
+##### **Windows**
 ```bash
 .\venv\Scripts\activate
 ```
 
-#### **macOS and Linux**
+##### **macOS and Linux**
 ```bash
 source venv/bin/activate
 ```
 
-### 3. Deactivate the Virtual Environment
+#### 3. Deactivate the Virtual Environment
 To deactivate the virtual environment on any platform, simply run:
 
 ```bash
