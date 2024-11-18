@@ -102,7 +102,7 @@ source venv/bin/activate
 ```
 
 #### 3. Deactivate the Virtual Environment
-To deactivate the virtual environment on any platform, simply run:
+To deactivate the virtual environment on any platform (e.g., when finished working with project), simply run:
 
 ```bash
 deactivate
