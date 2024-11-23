@@ -95,7 +95,9 @@ Activation differs depending on your operating system:
 ```bash
 .\venv\Scripts\activate
 ```
-
+```git bash
+source venv/Scripts/activate
+```
 ##### **macOS and Linux**
 ```bash
 source venv/bin/activate
